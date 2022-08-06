@@ -1,0 +1,43 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - curl -sSL https://install.python-poetry.org | python3 -
+      - PATH=$HOME/.local/bin:$PATH
+
+  pre_build:
+    commands:
+      - poetry install
+      - VERSION=$(echo 'import lambda_function; print(lambda_function.__version__)' | poetry run python)
+
+  build:
+    commands:
+      - poetry run pytest --junit-xml=unittest.xml --cov --cov-report xml
+      - poetry build
+      - poetry run pip install -t package dist/lambda_python_poetry_demo-*.whl
+
+reports:
+  unittest:
+    files:
+      - unittest.xml
+  coverage:
+    files:
+      - coverage.xml
+    file-format: COBERTURAXML
+
+artifacts:
+  files:
+    - '**/*'
+  name: $VERSION.zip
+  base-directory: package
+  exclude-paths: '**/__pycache__/*'
+
+cache:
+  paths:
+    - $HOME/.cache/pypoetry/**/*
